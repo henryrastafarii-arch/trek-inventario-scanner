@@ -1,0 +1,1776 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width,
+             initial-scale=1,
+             maximum-scale=1,
+             user-scalable=no">
+
+  <meta
+    name="theme-color"
+    content="#0d47a1">
+
+  <title>🚲 Trek Inventario</title>
+
+
+  <!--
+    Lector QR / códigos de barras.
+    La página está fuera de Apps Script,
+    por lo que el navegador puede solicitar
+    directamente la cámara.
+  -->
+
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js">
+  </script>
+
+
+  <style>
+
+    * {
+      box-sizing: border-box;
+    }
+
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      background: #f4f6f8;
+      color: #222;
+      font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Arial,
+        sans-serif;
+    }
+
+
+    body {
+      padding-bottom: 30px;
+    }
+
+
+    .header {
+      background:
+        linear-gradient(
+          135deg,
+          #174f8a,
+          #0d47a1
+        );
+
+      color: white;
+
+      padding:
+        20px
+        16px;
+
+      text-align: center;
+
+      box-shadow:
+        0 3px 12px
+        rgba(0,0,0,.18);
+    }
+
+
+    .header h1 {
+      margin: 0;
+      font-size: 23px;
+    }
+
+
+    .header p {
+      margin:
+        6px
+        0
+        0;
+
+      font-size: 13px;
+
+      opacity: .9;
+    }
+
+
+    .container {
+      max-width: 600px;
+      margin: auto;
+      padding: 12px;
+    }
+
+
+    .card {
+      background: white;
+
+      border-radius: 15px;
+
+      padding: 15px;
+
+      margin-bottom: 12px;
+
+      box-shadow:
+        0 2px 9px
+        rgba(0,0,0,.08);
+    }
+
+
+    .card h2 {
+      margin:
+        0
+        0
+        12px;
+
+      font-size: 17px;
+
+      color: #174f8a;
+    }
+
+
+    .mode {
+      display: flex;
+      gap: 8px;
+    }
+
+
+    .mode button {
+      flex: 1;
+
+      border: none;
+
+      border-radius: 10px;
+
+      padding: 14px 8px;
+
+      font-size: 15px;
+
+      font-weight: 700;
+
+      color: white;
+
+      cursor: pointer;
+    }
+
+
+    .ingreso {
+      background: #2e7d32;
+    }
+
+
+    .egreso {
+      background: #c62828;
+    }
+
+
+    .mode button.active {
+      box-shadow:
+        inset 0 0 0 3px
+        rgba(255,255,255,.7),
+        0 3px 8px
+        rgba(0,0,0,.18);
+    }
+
+
+    label {
+      display: block;
+
+      margin:
+        12px
+        0
+        5px;
+
+      font-size: 13px;
+
+      font-weight: 700;
+    }
+
+
+    select,
+    input {
+      width: 100%;
+
+      padding: 12px;
+
+      border:
+        1px solid #d5d9de;
+
+      border-radius: 9px;
+
+      background: white;
+
+      font-size: 16px;
+
+      outline: none;
+    }
+
+
+    select:focus,
+    input:focus {
+      border-color: #1a73e8;
+    }
+
+
+    .quantity {
+      display: flex;
+
+      gap: 10px;
+
+      align-items: center;
+    }
+
+
+    .quantity button {
+      width: 46px;
+      height: 46px;
+
+      border: none;
+
+      border-radius: 50%;
+
+      background: #1a73e8;
+
+      color: white;
+
+      font-size: 24px;
+
+      cursor: pointer;
+    }
+
+
+    .quantity input {
+      text-align: center;
+    }
+
+
+    .btn {
+      width: 100%;
+
+      border: none;
+
+      border-radius: 10px;
+
+      padding: 14px;
+
+      margin-top: 10px;
+
+      font-size: 15px;
+
+      font-weight: 700;
+
+      cursor: pointer;
+
+      color: white;
+    }
+
+
+    .btn-blue {
+      background: #1a73e8;
+    }
+
+
+    .btn-gray {
+      background: #616161;
+    }
+
+
+    .scanner {
+      display: none;
+
+      overflow: hidden;
+
+      border-radius: 12px;
+
+      margin-top: 12px;
+
+      background: #111;
+    }
+
+
+    #reader {
+      width: 100%;
+    }
+
+
+    #reader video {
+      width: 100% !important;
+      border-radius: 12px;
+    }
+
+
+    .status {
+      display: none;
+
+      margin-top: 10px;
+
+      padding: 13px;
+
+      border-radius: 10px;
+
+      font-size: 14px;
+
+      line-height: 1.45;
+    }
+
+
+    .status.ok {
+      display: block;
+
+      background: #e8f5e9;
+
+      color: #1b5e20;
+
+      border:
+        1px solid
+        #a5d6a7;
+    }
+
+
+    .status.error {
+      display: block;
+
+      background: #ffebee;
+
+      color: #b71c1c;
+
+      border:
+        1px solid
+        #ef9a9a;
+    }
+
+
+    .product {
+      display: none;
+
+      background: #e3f2fd;
+
+      border:
+        1px solid
+        #90caf9;
+
+      border-radius: 10px;
+
+      padding: 13px;
+
+      margin-top: 10px;
+
+      font-size: 14px;
+
+      line-height: 1.6;
+    }
+
+
+    .product strong {
+      color: #0d47a1;
+    }
+
+
+    .loading {
+      display: none;
+
+      text-align: center;
+
+      padding: 15px;
+
+      color: #666;
+    }
+
+
+    .recent {
+      font-size: 13px;
+    }
+
+
+    .recent-item {
+      padding:
+        9px
+        0;
+
+      border-bottom:
+        1px solid #eee;
+    }
+
+
+    .small {
+      font-size: 12px;
+      color: #777;
+    }
+
+
+    .toast {
+      position: fixed;
+
+      left: 50%;
+
+      bottom: 20px;
+
+      transform:
+        translate(-50%, 120px);
+
+      width:
+        calc(100% - 24px);
+
+      max-width: 450px;
+
+      background: #222;
+
+      color: white;
+
+      padding: 14px;
+
+      border-radius: 12px;
+
+      box-shadow:
+        0 8px 30px
+        rgba(0,0,0,.3);
+
+      z-index: 99999;
+
+      opacity: 0;
+
+      transition:
+        .25s ease;
+    }
+
+
+    .toast.show {
+      transform:
+        translate(-50%, 0);
+
+      opacity: 1;
+    }
+
+
+    @media (min-width: 700px) {
+
+      .container {
+        padding-top: 20px;
+      }
+
+    }
+
+  </style>
+
+</head>
+
+
+<body>
+
+
+<div class="header">
+
+  <h1>🚲 Trek Inventario</h1>
+
+  <p>
+    Scanner de inventario
+  </p>
+
+</div>
+
+
+<div class="container">
+
+
+  <!-- ACCIÓN -->
+
+  <div class="card">
+
+    <h2>📦 Tipo de movimiento</h2>
+
+
+    <div class="mode">
+
+      <button
+        id="btnIngreso"
+        class="ingreso active"
+        onclick="seleccionarAccion('INGRESO')">
+
+        📥 Ingreso
+
+      </button>
+
+
+      <button
+        id="btnEgreso"
+        class="egreso"
+        onclick="seleccionarAccion('EGRESO')">
+
+        📤 Egreso
+
+      </button>
+
+    </div>
+
+
+    <label>
+      Tienda
+    </label>
+
+
+    <select id="tienda">
+
+      <option value="XELA">
+        Xela
+      </option>
+
+      <option value="HUEHUE">
+        Huehuetenango
+      </option>
+
+    </select>
+
+
+    <label>
+      Cantidad
+    </label>
+
+
+    <div class="quantity">
+
+      <button onclick="cambiarCantidad(-1)">
+        −
+      </button>
+
+
+      <input
+        id="cantidad"
+        type="number"
+        min="1"
+        value="1">
+
+
+      <button onclick="cambiarCantidad(1)">
+        +
+      </button>
+
+    </div>
+
+
+    <label>
+      Observaciones
+    </label>
+
+
+    <input
+      id="observaciones"
+      type="text"
+      placeholder="Opcional">
+
+  </div>
+
+
+  <!-- ESCÁNER -->
+
+  <div class="card">
+
+    <h2>📷 Escanear producto</h2>
+
+
+    <button
+      id="btnStart"
+      class="btn btn-blue"
+      onclick="iniciarScanner()">
+
+      📷 Activar cámara
+
+    </button>
+
+
+    <button
+      id="btnStop"
+      class="btn btn-gray"
+      style="display:none"
+      onclick="detenerScanner()">
+
+      ■ Detener cámara
+
+    </button>
+
+
+    <div
+      id="scanner"
+      class="scanner">
+
+      <div id="reader"></div>
+
+    </div>
+
+
+    <div
+      id="loading"
+      class="loading">
+
+      Procesando movimiento...
+
+    </div>
+
+
+    <div
+      id="product"
+      class="product">
+    </div>
+
+
+    <div
+      id="status"
+      class="status">
+    </div>
+
+  </div>
+
+
+  <!-- MANUAL -->
+
+  <div class="card">
+
+    <h2>⌨️ Código manual</h2>
+
+
+    <input
+      id="manual"
+      type="text"
+      placeholder="SKU o código de barras">
+
+
+    <button
+      class="btn btn-blue"
+      onclick="procesarManual()">
+
+      Buscar / registrar
+
+    </button>
+
+  </div>
+
+
+  <!-- RECIENTES -->
+
+  <div class="card">
+
+    <h2>📋 Movimientos recientes</h2>
+
+
+    <div
+      id="recent"
+      class="recent">
+
+      Cargando...
+
+    </div>
+
+  </div>
+
+
+</div>
+
+
+<div
+  id="toast"
+  class="toast">
+</div>
+
+
+<script>
+
+
+/* ==========================================================
+   CONFIGURACIÓN
+   ========================================================== */
+
+
+/*
+ * PEGA AQUÍ LA URL /exec DE LA NUEVA
+ * API "Trek Inventario API".
+ */
+
+const API_URL =
+  'PEGA_AQUI_LA_URL_DE_TU_API';
+
+
+/*
+ * Debe coincidir con el API_PIN
+ * que pusiste en Apps Script.
+ */
+
+const API_PIN =
+  'PEGA_AQUI_TU_PIN';
+
+
+/* ==========================================================
+   VARIABLES
+   ========================================================== */
+
+let accion =
+  'INGRESO';
+
+let scanner =
+  null;
+
+let scannerActivo =
+  false;
+
+let procesando =
+  false;
+
+let toastTimer =
+  null;
+
+
+/* ==========================================================
+   INICIO
+   ========================================================== */
+
+document.addEventListener(
+  'DOMContentLoaded',
+  function() {
+
+    seleccionarAccion(
+      'INGRESO'
+    );
+
+    cargarRecientes();
+
+  }
+);
+
+
+/* ==========================================================
+   ACCIÓN
+   ========================================================== */
+
+function seleccionarAccion(tipo) {
+
+  accion =
+    tipo;
+
+
+  document
+    .getElementById('btnIngreso')
+    .classList
+    .toggle(
+      'active',
+      tipo === 'INGRESO'
+    );
+
+
+  document
+    .getElementById('btnEgreso')
+    .classList
+    .toggle(
+      'active',
+      tipo === 'EGRESO'
+    );
+
+}
+
+
+/* ==========================================================
+   CANTIDAD
+   ========================================================== */
+
+function cambiarCantidad(delta) {
+
+  const input =
+    document.getElementById(
+      'cantidad'
+    );
+
+
+  let valor =
+    parseInt(
+      input.value
+    ) || 1;
+
+
+  valor =
+    Math.max(
+      1,
+      valor + delta
+    );
+
+
+  input.value =
+    valor;
+
+}
+
+
+/* ==========================================================
+   TOAST
+   ========================================================== */
+
+function mostrarToast(mensaje) {
+
+  const toast =
+    document.getElementById(
+      'toast'
+    );
+
+
+  toast.textContent =
+    mensaje;
+
+
+  toast.classList.add(
+    'show'
+  );
+
+
+  clearTimeout(
+    toastTimer
+  );
+
+
+  toastTimer =
+    setTimeout(
+      function() {
+
+        toast.classList.remove(
+          'show'
+        );
+
+      },
+      3500
+    );
+
+}
+
+
+/* ==========================================================
+   ESTADO
+   ========================================================== */
+
+function mostrarEstado(
+  mensaje,
+  tipo
+) {
+
+  const el =
+    document.getElementById(
+      'status'
+    );
+
+
+  el.textContent =
+    mensaje;
+
+
+  el.className =
+    'status ' +
+    tipo;
+
+
+  el.style.display =
+    'block';
+
+}
+
+
+function ocultarEstado() {
+
+  const el =
+    document.getElementById(
+      'status'
+    );
+
+
+  el.style.display =
+    'none';
+
+}
+
+
+/* ==========================================================
+   ESCÁNER
+   ========================================================== */
+
+async function iniciarScanner() {
+
+  if (
+    scannerActivo ||
+    procesando
+  ) {
+
+    return;
+
+  }
+
+
+  ocultarEstado();
+
+
+  document
+    .getElementById(
+      'scanner'
+    )
+    .style.display =
+    'block';
+
+
+  document
+    .getElementById(
+      'btnStart'
+    )
+    .style.display =
+    'none';
+
+
+  document
+    .getElementById(
+      'btnStop'
+    )
+    .style.display =
+    'block';
+
+
+  try {
+
+    scanner =
+      new Html5Qrcode(
+        'reader'
+      );
+
+
+    const formatos = [
+
+      Html5QrcodeSupportedFormats.QR_CODE,
+
+      Html5QrcodeSupportedFormats.EAN_13,
+
+      Html5QrcodeSupportedFormats.EAN_8,
+
+      Html5QrcodeSupportedFormats.UPC_A,
+
+      Html5QrcodeSupportedFormats.UPC_E,
+
+      Html5QrcodeSupportedFormats.CODE_128,
+
+      Html5QrcodeSupportedFormats.CODE_39
+
+    ];
+
+
+    await scanner.start(
+
+      {
+        facingMode:
+          {
+            exact:
+              'environment'
+          }
+      },
+
+      {
+
+        fps: 10,
+
+        qrbox:
+          {
+            width:
+              260,
+
+            height:
+              180
+          },
+
+        formatsToSupport:
+          formatos
+
+      },
+
+      function(decodedText) {
+
+        if (procesando) {
+          return;
+        }
+
+
+        procesando =
+          true;
+
+
+        detenerScanner();
+
+
+        procesarCodigo(
+          decodedText
+        );
+
+      },
+
+      function() {
+
+        /*
+         * Los errores de lectura
+         * de cada frame se ignoran.
+         */
+
+      }
+
+    );
+
+
+    scannerActivo =
+      true;
+
+
+    mostrarToast(
+      'Cámara activada.'
+    );
+
+
+  } catch (error) {
+
+    console.error(
+      error
+    );
+
+
+    detenerScannerVisual();
+
+
+    let mensaje =
+      'No se pudo activar la cámara.';
+
+
+    const texto =
+      String(
+        error
+      );
+
+
+    if (
+      texto.includes(
+        'NotAllowedError'
+      ) ||
+      texto.includes(
+        'Permission'
+      )
+    ) {
+
+      mensaje =
+        'El navegador bloqueó la cámara. Revisa el permiso de cámara de este sitio.';
+
+    }
+
+    else if (
+      texto.includes(
+        'NotFoundError'
+      )
+    ) {
+
+      mensaje =
+        'No se encontró una cámara disponible.';
+
+    }
+
+    else if (
+      texto.includes(
+        'NotReadableError'
+      )
+    ) {
+
+      mensaje =
+        'La cámara está siendo utilizada por otra aplicación.';
+
+    }
+
+
+    mostrarEstado(
+      mensaje,
+      'error'
+    );
+
+
+    mostrarToast(
+      'No fue posible activar la cámara.'
+    );
+
+  }
+
+}
+
+
+/* ==========================================================
+   DETENER ESCÁNER
+   ========================================================== */
+
+async function detenerScanner() {
+
+  if (
+    scanner &&
+    scannerActivo
+  ) {
+
+    try {
+
+      await scanner.stop();
+
+    } catch (e) {}
+
+    try {
+
+      scanner.clear();
+
+    } catch (e) {}
+
+  }
+
+
+  scanner =
+    null;
+
+
+  scannerActivo =
+    false;
+
+
+  detenerScannerVisual();
+
+}
+
+
+function detenerScannerVisual() {
+
+  document
+    .getElementById(
+      'scanner'
+    )
+    .style.display =
+    'none';
+
+
+  document
+    .getElementById(
+      'btnStart'
+    )
+    .style.display =
+    'block';
+
+
+  document
+    .getElementById(
+      'btnStop'
+    )
+    .style.display =
+    'none';
+
+}
+
+
+/* ==========================================================
+   CÓDIGO MANUAL
+   ========================================================== */
+
+function procesarManual() {
+
+  const input =
+    document.getElementById(
+      'manual'
+    );
+
+
+  const codigo =
+    input.value.trim();
+
+
+  if (!codigo) {
+
+    mostrarEstado(
+      'Escribe un SKU o código de barras.',
+      'error'
+    );
+
+    return;
+
+  }
+
+
+  procesarCodigo(
+    codigo
+  );
+
+}
+
+
+/* ==========================================================
+   PROCESAR CÓDIGO
+   ========================================================== */
+
+function procesarCodigo(
+  codigo
+) {
+
+  if (!codigo) {
+
+    procesando =
+      false;
+
+    return;
+
+  }
+
+
+  const tienda =
+    document.getElementById(
+      'tienda'
+    ).value;
+
+
+  const cantidad =
+    Number(
+      document.getElementById(
+        'cantidad'
+      ).value
+    ) || 1;
+
+
+  const observaciones =
+    document.getElementById(
+      'observaciones'
+    ).value.trim();
+
+
+  if (
+    cantidad <= 0
+  ) {
+
+    mostrarEstado(
+      'La cantidad debe ser mayor que cero.',
+      'error'
+    );
+
+
+    procesando =
+      false;
+
+
+    return;
+
+  }
+
+
+  document
+    .getElementById(
+      'loading'
+    )
+    .style.display =
+    'block';
+
+
+  ocultarEstado();
+
+
+  document
+    .getElementById(
+      'product'
+    )
+    .style.display =
+    'none';
+
+
+  llamarAPI(
+
+    'movimiento',
+
+    {
+
+      codigo:
+        codigo,
+
+      accion:
+        accion,
+
+      cantidad:
+        cantidad,
+
+      tienda:
+        tienda,
+
+      observaciones:
+        observaciones
+
+    },
+
+    function(res) {
+
+      document
+        .getElementById(
+          'loading'
+        )
+        .style.display =
+        'none';
+
+
+      procesando =
+        false;
+
+
+      if (
+        !res ||
+        !res.ok
+      ) {
+
+        mostrarEstado(
+          res &&
+          res.mensaje
+            ? res.mensaje
+            : res &&
+              res.error
+              ? res.error
+              : 'No se pudo registrar el movimiento.',
+          'error'
+        );
+
+
+        mostrarToast(
+          'No se registró el movimiento.'
+        );
+
+
+        return;
+
+      }
+
+
+      const producto =
+        document.getElementById(
+          'product'
+        );
+
+
+      producto.innerHTML =
+
+        '<strong>Producto:</strong> ' +
+        escapar(
+          res.producto
+        ) +
+
+        '<br>' +
+
+        '<strong>SKU:</strong> ' +
+        escapar(
+          res.sku
+        ) +
+
+        '<br>' +
+
+        '<strong>Tienda:</strong> ' +
+        escapar(
+          res.tienda
+        ) +
+
+        '<br>' +
+
+        '<strong>Cantidad:</strong> ' +
+        escapar(
+          res.cantidad
+        ) +
+
+        '<br>' +
+
+        '<strong>Stock tienda:</strong> ' +
+        escapar(
+          res.stockTienda
+        ) +
+
+        '<br>' +
+
+        '<strong>Stock total:</strong> ' +
+        escapar(
+          res.stockTotal
+        );
+
+
+      producto.style.display =
+        'block';
+
+
+      mostrarEstado(
+        '✓ ' +
+        res.mensaje,
+        'ok'
+      );
+
+
+      mostrarToast(
+        'Movimiento registrado.'
+      );
+
+
+      document
+        .getElementById(
+          'manual'
+        )
+        .value = '';
+
+
+      document
+        .getElementById(
+          'observaciones'
+        )
+        .value = '';
+
+
+      cargarRecientes();
+
+    }
+
+  );
+
+}
+
+
+/* ==========================================================
+   LLAMAR API MEDIANTE JSONP
+   ========================================================== */
+
+function llamarAPI(
+  action,
+  params,
+  callback
+) {
+
+  if (
+    !API_URL ||
+    API_URL.indexOf(
+      'PEGA_AQUI'
+    ) !== -1
+  ) {
+
+    callback({
+
+      ok: false,
+
+      error:
+        'Configura API_URL en index.html.'
+
+    });
+
+    return;
+
+  }
+
+
+  if (
+    !API_PIN ||
+    API_PIN.indexOf(
+      'PEGA_AQUI'
+    ) !== -1
+  ) {
+
+    callback({
+
+      ok: false,
+
+      error:
+        'Configura API_PIN en index.html.'
+
+    });
+
+    return;
+
+  }
+
+
+  const callbackName =
+    '__trekApi_' +
+    Date.now() +
+    '_' +
+    Math.floor(
+      Math.random() *
+      100000
+    );
+
+
+  window[
+    callbackName
+  ] = function(data) {
+
+    try {
+
+      callback(
+        data
+      );
+
+    }
+
+    finally {
+
+      delete window[
+        callbackName
+      ];
+
+    }
+
+  };
+
+
+  const query =
+    new URLSearchParams();
+
+
+  query.set(
+    'action',
+    action
+  );
+
+
+  query.set(
+    'pin',
+    API_PIN
+  );
+
+
+  query.set(
+    'callback',
+    callbackName
+  );
+
+
+  Object.keys(
+    params || {}
+  ).forEach(
+    function(key) {
+
+      query.set(
+        key,
+        params[key]
+      );
+
+    }
+  );
+
+
+  const script =
+    document.createElement(
+      'script'
+    );
+
+
+  script.src =
+    API_URL +
+    '?' +
+    query.toString();
+
+
+  script.onerror =
+    function() {
+
+      delete window[
+        callbackName
+      ];
+
+
+      callback({
+
+        ok: false,
+
+        error:
+          'No se pudo conectar con Trek Inventario API.'
+
+      });
+
+    };
+
+
+  document
+    .body
+    .appendChild(
+      script
+    );
+
+
+  setTimeout(
+    function() {
+
+      try {
+        script.remove();
+      } catch (e) {}
+
+    },
+    15000
+  );
+
+}
+
+
+/* ==========================================================
+   MOVIMIENTOS RECIENTES
+   ========================================================== */
+
+function cargarRecientes() {
+
+  llamarAPI(
+
+    'recientes',
+
+    {},
+
+    function(res) {
+
+      const contenedor =
+        document.getElementById(
+          'recent'
+        );
+
+
+      if (
+        !res ||
+        !res.ok
+      ) {
+
+        contenedor.innerHTML =
+          '<span class="small">' +
+          'No se pudieron cargar los movimientos.' +
+          '</span>';
+
+        return;
+
+      }
+
+
+      const movimientos =
+        res.movimientos || [];
+
+
+      if (
+        movimientos.length === 0
+      ) {
+
+        contenedor.innerHTML =
+          '<span class="small">' +
+          'No hay movimientos todavía.' +
+          '</span>';
+
+        return;
+
+      }
+
+
+      let html = '';
+
+
+      movimientos
+        .forEach(
+          function(m) {
+
+            const icono =
+              m.tipo === 'INGRESO'
+                ? '📥'
+                : '📤';
+
+
+            html +=
+
+              '<div class="recent-item">' +
+
+              icono +
+              ' <strong>' +
+
+              escapar(
+                m.tipo
+              ) +
+
+              '</strong> · ' +
+
+              escapar(
+                m.descripcion
+              ) +
+
+              '<br>' +
+
+              '<span class="small">' +
+
+              'SKU: ' +
+              escapar(
+                m.sku
+              ) +
+
+              ' · Cantidad: ' +
+              escapar(
+                m.cantidad
+              ) +
+
+              ' · ' +
+
+              escapar(
+                m.tienda
+              ) +
+
+              '</span>' +
+
+              '</div>';
+
+          }
+        );
+
+
+      contenedor.innerHTML =
+        html;
+
+    }
+
+  );
+
+}
+
+
+/* ==========================================================
+   ESCAPAR HTML
+   ========================================================== */
+
+function escapar(
+  valor
+) {
+
+  if (
+    valor === null ||
+    valor === undefined
+  ) {
+
+    return '';
+
+  }
+
+
+  return String(
+    valor
+  )
+
+    .replace(
+      /&/g,
+      '&amp;'
+    )
+
+    .replace(
+      /</g,
+      '&lt;'
+    )
+
+    .replace(
+      />/g,
+      '&gt;'
+    )
+
+    .replace(
+      /"/g,
+      '&quot;'
+    )
+
+    .replace(
+      /'/g,
+      '&#039;'
+    );
+
+}
+
+
+</script>
+
+</body>
+
+</html>
